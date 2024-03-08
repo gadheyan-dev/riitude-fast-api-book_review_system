@@ -39,31 +39,31 @@ mock_review_db = [
     Review(
         id="493ac67b-7a18-4a0f-a1a8-95c71c2a5473",
         book_id="8bf1cfb5-799c-44da-bb57-f076c3247024",
-        review="Ponniyin Selvan is a captivating tale! Loved every bit of it.",
+        text="Ponniyin Selvan is a captivating tale! Loved every bit of it.",
         rating=9
     ),
     Review(
         id="2ed3ba04-cd98-4e21-a4c1-17a8c87ba6b5",
         book_id="8bf1cfb5-799c-44da-bb57-f076c3247024",
-        review="I didn't enjoy Ponniyin Selvan. Not as good as the movie.",
+        text="I didn't enjoy Ponniyin Selvan. Not as good as the movie.",
         rating=3
     ),
     Review(
         id="7df0a5da-d82f-4d22-b81f-6c1fc7a8f9f1",
         book_id="d1cbb3ad-4de3-456a-9d37-a912e098582c",
-        review="Beautifully written, highly recommended.",
+        text="Beautifully written, highly recommended.",
         rating=10
     ),
     Review(
         id="91c79c85-8b20-4a4d-a083-dc4bd9a183aa",
         book_id="1e970a18-0c89-4f15-8060-a9a85a6e0cca",
-        review="Enjoyed reading it, a must-read.",
+        text="Enjoyed reading it, a must-read.",
         rating=7
     ),
     Review(
         id="56c79f23-4aef-4db1-9a50-1f567bd28c94",
         book_id="2db5e921-e748-4b40-a24d-e637860c1dc0",
-        review="Intriguing storyline, well-written.",
+        text="Intriguing storyline, well-written.",
         rating=9
     ),
 ]

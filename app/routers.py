@@ -118,6 +118,48 @@ def show_books(author: str = None, publication_year: int = None):
 
 @router.post("/{book_id}/reviews/")
 def create_review(book_id: str, review: Review):
+    """
+    Create a new review for a specific book.
+
+    Args:
+        book_id (str): The id of the book in the path parameter.
+        review (Review): The review information.
+
+    Returns:
+        JSONResponse: JSON response with details about the created review.
+
+    Raises:
+        HTTPException: If the book with the given ID is not found or if the provided book_id in the path
+        does not match the book_id in the review.
+        RequestValidationException: If there is an issue with the request.
+
+
+    Example Request:
+    ```json
+    {
+      "book_id": "8bf1cfb5-799c-44da-bb57-f076c3247024",
+      "review": "Ponniyin Selvan is an okay read. Found some parts interesting, but overall, it didn't fully captivate me.",
+      "rating": 6
+    },
+    ```
+
+    Example Response:
+    ```json
+    {
+        "success": true,
+        "message": "Review created successfully",
+        "data": {
+            
+            "review": {
+                "id": "4b89456b-4f0d-4d6b-88d5-3ed4e1b5bc8b",
+                "book_id": "8bf1cfb5-799c-44da-bb57-f076c3247024",
+                "text": "Ponniyin Selvan is an okay read. Found some parts interesting, but overall, it didn't fully captivate me.",
+                "rating": 6
+            }
+        }
+    }
+    ```
+    """
     if not book_id or not book_id_exists(book_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Book with id {book_id} not found.")
@@ -129,12 +171,42 @@ def create_review(book_id: str, review: Review):
     review.book_id = book_id
     mock_review_db.append(review)
     response_content = {
-        "success": True, "message": "Review created successfully", "data": {"book_id": book_id, "review": review}}
+        "success": True, "message": "Review created successfully", "data": {"review": review}}
     return JSONResponse(content=jsonable_encoder(response_content), status_code=status.HTTP_201_CREATED)
 
 
 @router.get("/{book_id}/reviews/")
 def show_reviews(book_id: str):
+    """
+    Find and return all the reviews for a given book.
+
+    Args:
+        book_id (str): The given id of the book.
+
+    Raises:
+        HTTPException: If the provided book_id is empty or does not exist in the database,
+                       a 404 NOT FOUND response is raised.
+
+    Returns:
+        JSONResponse: A JSON response containing the reviews for the specified book.
+                      If successful, returns a 200 OK response with success, message, and data.
+                      If not found, returns a 404 NOT FOUND response.
+    Example Response:
+    ```json
+    {
+        "success": true,
+        "message": null,
+        "data": [
+            {
+                "id": "4b89456b-4f0d-4d6b-88d5-3ed4e1b5bc8b",
+                "book_id": "8bf1cfb5-799c-44da-bb57-f076c3247024",
+                "text": "Ponniyin Selvan is an okay read. Found some parts interesting, but overall, it didn't fully captivate me.",
+                "rating": 6
+            }
+        ]
+    }
+    ```
+    """
     if not book_id or not book_id_exists(book_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="The book you provided does not exist.")
@@ -148,7 +220,16 @@ def show_reviews(book_id: str):
     return JSONResponse(content=jsonable_encoder(response_content), status_code=status.HTTP_200_OK)
 
 
-def book_id_exists(book_id: uuid4):
+def book_id_exists(book_id: str):
+    """
+    Checks if a given book_id exists in the database.
+
+    Args:
+        book_id (str): The unique identifier of the book.
+
+    Returns:
+        bool: True if the book_id exists, False otherwise.
+    """
     for book in mock_book_db:
         if book.id == book_id:
             return True
