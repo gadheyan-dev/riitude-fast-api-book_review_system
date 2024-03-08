@@ -3,6 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from .routers import router
+from app.db.database import Base, engine
 
 
 app = FastAPI()
@@ -30,6 +31,15 @@ async def http_exception_handler(request, exc):
 
     )
 
+
+async def init_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+
+@app.on_event("startup")
+async def on_startup():
+    await init_db()
 
 
 app.include_router(router)

@@ -1,13 +1,14 @@
 from uuid import uuid4
 from typing import List
 
+from fastapi import APIRouter, Depends, status, HTTPException
 from fastapi.encoders import jsonable_encoder
-from fastapi import APIRouter, status, HTTPException
 from fastapi.responses import JSONResponse
 
-
-from .schemas import Book, Review
-from .mock_db import mock_book_db, mock_review_db
+from app.db.dals import BookDAL, ReviewDAL
+from app.dependencies import get_book_dal, get_review_dal
+from app.schemas import Book, Review
+from app.mock_db import mock_book_db, mock_review_db
 
 router = APIRouter(
     prefix="/books",
@@ -16,7 +17,7 @@ router = APIRouter(
 
 
 @router.post("/")
-def create_book(book: Book):
+async def create_book(book: Book, book_dal: BookDAL = Depends(get_book_dal)):
     """
     Create a new book.
 
@@ -55,14 +56,15 @@ def create_book(book: Book):
     }
     ```
     """
-    mock_book_db.append(book)
+
+    await book_dal.create_book(book)
     response_content = {
         "success": True, "message": "Book created successfully", "data": {"book": book}}
     return JSONResponse(content=jsonable_encoder(response_content), status_code=status.HTTP_201_CREATED)
 
 
 @router.get("/")
-def show_books(author: str = None, publication_year: int = None):
+async def show_books(author: str = None, publication_year: int = None, book_dal: BookDAL = Depends(get_book_dal)):
     """
     Get a list of books based on optional filters.
 
@@ -101,23 +103,16 @@ def show_books(author: str = None, publication_year: int = None):
     }
     ```
     """
-    filtered_books = mock_book_db
-
-    if author:
-        filtered_books = [
-            book for book in filtered_books if author.lower() in book.author.lower()]
-
-    if publication_year:
-        filtered_books = [
-            book for book in filtered_books if book.publication_year == publication_year]
-
-    response_content = {"success": True,
-                        "message": None, "data": filtered_books}
-    return JSONResponse(content=jsonable_encoder(response_content), status_code=status.HTTP_200_OK)
-
+    try:
+        books = await book_dal.get_all_books(author, publication_year)
+        response_content = {"success": True,
+                            "message": None, "data": books}
+        return JSONResponse(content=jsonable_encoder(response_content), status_code=status.HTTP_200_OK)
+    except Exception as e:
+        print(e)
 
 @router.post("/{book_id}/reviews/")
-def create_review(book_id: str, review: Review):
+async def create_review(book_id: str, review: Review, book_dal: BookDAL = Depends(get_book_dal), review_dal: ReviewDAL = Depends(get_review_dal)):
     """
     Create a new review for a specific book.
 
@@ -160,7 +155,7 @@ def create_review(book_id: str, review: Review):
     }
     ```
     """
-    if not book_id or not book_id_exists(book_id):
+    if not book_id or not book_dal.book_exists(book_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Book with id {book_id} not found.")
 
@@ -168,15 +163,14 @@ def create_review(book_id: str, review: Review):
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             detail=f"Book id given in path does not match with book id in the review.")
 
-    review.book_id = book_id
-    mock_review_db.append(review)
+    await review_dal.create_book(review)
     response_content = {
         "success": True, "message": "Review created successfully", "data": {"review": review}}
     return JSONResponse(content=jsonable_encoder(response_content), status_code=status.HTTP_201_CREATED)
 
 
 @router.get("/{book_id}/reviews/")
-def show_reviews(book_id: str):
+def show_reviews(book_id: str, book_dal: BookDAL = Depends(get_book_dal), review_dal: ReviewDAL = Depends(get_review_dal)):
     """
     Find and return all the reviews for a given book.
 
@@ -207,7 +201,7 @@ def show_reviews(book_id: str):
     }
     ```
     """
-    if not book_id or not book_id_exists(book_id):
+    if not book_id or not book_dal.book_exists(book_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="The book you provided does not exist.")
 
@@ -220,17 +214,3 @@ def show_reviews(book_id: str):
     return JSONResponse(content=jsonable_encoder(response_content), status_code=status.HTTP_200_OK)
 
 
-def book_id_exists(book_id: str):
-    """
-    Checks if a given book_id exists in the database.
-
-    Args:
-        book_id (str): The unique identifier of the book.
-
-    Returns:
-        bool: True if the book_id exists, False otherwise.
-    """
-    for book in mock_book_db:
-        if book.id == book_id:
-            return True
-    return False
