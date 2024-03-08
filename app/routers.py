@@ -63,6 +63,29 @@ async def create_book(book: Book, book_dal: BookDAL = Depends(get_book_dal)):
         "success": True, "message": "Book created successfully", "data": {"book": book}}
     return JSONResponse(content=jsonable_encoder(response_content), status_code=status.HTTP_201_CREATED)
 
+@router.put("/{book_id}/")
+async def update_book(book_id:str, updated_book: Book, book_dal: BookDAL = Depends(get_book_dal)):
+    if not book_id or not await book_dal.book_exists(book_id):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Book with id {book_id} not found.")
+    if book_id != updated_book.id:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail=f"Book id given in path does not match with book id in the request body.")
+    await book_dal.update_book(book_id, updated_book)
+    response_content = {
+        "success": True, "message": "Book updated successfully", "data": {"book": updated_book}}
+    return JSONResponse(content=jsonable_encoder(response_content), status_code=status.HTTP_204_NO_CONTENT)
+
+@router.delete("/{book_id}/")
+async def delete_book(book_id:str, book_dal: BookDAL = Depends(get_book_dal)):
+    if not book_id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Book with id {book_id} not found.")
+    await book_dal.delete_book(book_id)
+    response_content = {
+        "success": True, "message": "Book deleted successfully", "data": {"book_id": book_id}}
+    return JSONResponse(content=jsonable_encoder(response_content), status_code=status.HTTP_204_NO_CONTENT)
+
 
 @router.get("/")
 async def show_books(author: str = None, publication_year: int = None, book_dal: BookDAL = Depends(get_book_dal)):
@@ -218,3 +241,18 @@ async def show_reviews(book_id: str, book_dal: BookDAL = Depends(get_book_dal), 
         return JSONResponse(content=jsonable_encoder(response_content), status_code=status.HTTP_200_OK)
     except Exception as e:
         print(e)
+
+
+
+@router.put("/{review_id}/")
+async def update_review(review_id:str, updated_review: Review, review_dal: ReviewDAL = Depends(get_review_dal)):
+    if not review_id or not await review_dal.review_exists(review_id):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Review with id {review_id} not found.")
+    if review_id != updated_review.id:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail=f"Review id given in path does not match with review id in the request body.")
+    await review_dal.update_review(review_id, updated_review)
+    response_content = {
+        "success": True, "message": "Review updated successfully", "data": {"review": updated_review}}
+    return JSONResponse(content=jsonable_encoder(response_content), status_code=status.HTTP_204_NO_CONTENT)
