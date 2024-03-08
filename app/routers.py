@@ -4,11 +4,12 @@ from typing import List
 from fastapi import APIRouter, Depends, status, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
+
 
 from app.db.dals import BookDAL, ReviewDAL
 from app.dependencies import get_book_dal, get_review_dal
 from app.schemas import Book, Review
-from app.mock_db import mock_book_db, mock_review_db
 
 router = APIRouter(
     prefix="/books",
@@ -111,6 +112,7 @@ async def show_books(author: str = None, publication_year: int = None, book_dal:
     except Exception as e:
         print(e)
 
+
 @router.post("/{book_id}/reviews/")
 async def create_review(book_id: str, review: Review, book_dal: BookDAL = Depends(get_book_dal), review_dal: ReviewDAL = Depends(get_review_dal)):
     """
@@ -144,7 +146,7 @@ async def create_review(book_id: str, review: Review, book_dal: BookDAL = Depend
         "success": true,
         "message": "Review created successfully",
         "data": {
-            
+
             "review": {
                 "id": "4b89456b-4f0d-4d6b-88d5-3ed4e1b5bc8b",
                 "book_id": "8bf1cfb5-799c-44da-bb57-f076c3247024",
@@ -155,22 +157,27 @@ async def create_review(book_id: str, review: Review, book_dal: BookDAL = Depend
     }
     ```
     """
-    if not book_id or not book_dal.book_exists(book_id):
+    try:
+        if not book_id or not await book_dal.book_exists(book_id):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Book with id {book_id} not found.")
+
+        if book_id != review.book_id:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail=f"Book id given in path does not match with book id in the review.")
+
+        await review_dal.create_review(review)
+        response_content = {
+            "success": True, "message": "Review created successfully", "data": {"review": review}}
+        return JSONResponse(content=jsonable_encoder(response_content), status_code=status.HTTP_201_CREATED)
+
+    except IntegrityError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Book with id {book_id} not found.")
-
-    if book_id != review.book_id:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                            detail=f"Book id given in path does not match with book id in the review.")
-
-    await review_dal.create_review(review)
-    response_content = {
-        "success": True, "message": "Review created successfully", "data": {"review": review}}
-    return JSONResponse(content=jsonable_encoder(response_content), status_code=status.HTTP_201_CREATED)
+                            detail=str(e.orig))
 
 
 @router.get("/{book_id}/reviews/")
-def show_reviews(book_id: str, book_dal: BookDAL = Depends(get_book_dal), review_dal: ReviewDAL = Depends(get_review_dal)):
+async def show_reviews(book_id: str, book_dal: BookDAL = Depends(get_book_dal), review_dal: ReviewDAL = Depends(get_review_dal)):
     """
     Find and return all the reviews for a given book.
 
@@ -201,15 +208,13 @@ def show_reviews(book_id: str, book_dal: BookDAL = Depends(get_book_dal), review
     }
     ```
     """
-    if not book_id or not book_dal.book_exists(book_id):
+    if not book_id or not await book_dal.book_exists(book_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="The book you provided does not exist.")
-
-    filtered_reviews = mock_review_db
-    filtered_reviews = [
-        review for review in filtered_reviews if review.book_id == book_id]
-    response_content = {"success": True,
-                        "message": None, "data": filtered_reviews}
-    return JSONResponse(content=jsonable_encoder(response_content), status_code=status.HTTP_200_OK)
-
-
+    try:
+        reviews = await review_dal.get_reviews(book_id)
+        response_content = {"success": True,
+                            "message": None, "data": reviews}
+        return JSONResponse(content=jsonable_encoder(response_content), status_code=status.HTTP_200_OK)
+    except Exception as e:
+        print(e)

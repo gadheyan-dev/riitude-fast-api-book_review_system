@@ -1,6 +1,6 @@
 from fastapi import Depends
 from typing import List, Optional
-from sqlalchemy import update
+from sqlalchemy import update, or_
 from sqlalchemy.future import select
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,10 +19,15 @@ class BookDAL():
 
     async def get_all_books(self, author:str = None, publication_year:int = None):
         books_query = select(BooksModel)
+        filters = []
         if author:
-            books_query = books_query.filter(BooksModel.author.ilike(f"%{author}%"))
+            filters.append(BooksModel.author.ilike(f"%{author}%"))
         if publication_year:
-            books_query = books_query.filter(BooksModel.publication_year == publication_year)
+            filters.append(BooksModel.publication_year == publication_year)
+        
+        if filters:
+            books_query = books_query.filter(or_(*filters))
+            
         result = await self.db.execute(books_query)
         books = result.scalars().all()
         return books
