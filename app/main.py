@@ -9,6 +9,7 @@ app = FastAPI()
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    print(exc)
     errors = []
     for error in exc.errors():
         field = ".".join(error["loc"])
