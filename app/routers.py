@@ -163,7 +163,7 @@ async def create_review(book_id: str, review: Review, book_dal: BookDAL = Depend
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             detail=f"Book id given in path does not match with book id in the review.")
 
-    await review_dal.create_book(review)
+    await review_dal.create_review(review)
     response_content = {
         "success": True, "message": "Review created successfully", "data": {"review": review}}
     return JSONResponse(content=jsonable_encoder(response_content), status_code=status.HTTP_201_CREATED)
@@ -206,7 +206,6 @@ def show_reviews(book_id: str, book_dal: BookDAL = Depends(get_book_dal), review
                             detail="The book you provided does not exist.")
 
     filtered_reviews = mock_review_db
-    print(filtered_reviews)
     filtered_reviews = [
         review for review in filtered_reviews if review.book_id == book_id]
     response_content = {"success": True,

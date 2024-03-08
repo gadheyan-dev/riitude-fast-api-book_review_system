@@ -55,3 +55,11 @@ class ReviewDAL():
         db_review = ReviewsModel(**review.dict())
         self.db.add(db_review)
         await self.db.commit()
+
+    async def get_reviews(self, book_id:str = None):
+        reviews_query = select(ReviewsModel)
+        if book_id:
+            reviews_query = reviews_query.filter(ReviewsModel.book_id == book_id)
+        result = await self.db.execute(reviews_query)
+        reviews = result.scalars().all()
+        return reviews
